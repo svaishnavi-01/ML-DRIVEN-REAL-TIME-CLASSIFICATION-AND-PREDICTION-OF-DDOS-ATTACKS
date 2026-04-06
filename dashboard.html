@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligent DDoS Detection Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        
+        .stat-card h3 {
+            color: #7f8c8d;
+            font-size: 0.95em;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-value {
+            font-size: 2.8em;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .stat-card.danger .stat-value {
+            color: #e74c3c;
+        }
+        
+        .stat-card.warning .stat-value {
+            color: #f39c12;
+        }
+        
+        .stat-card.success .stat-value {
+            color: #27ae60;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .card h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #3498db;
+            font-size: 1.6em;
+        }
+        
+        .detection-result {
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .detection-result.attack {
+            background: #ffe5e5;
+            border-left-color: #e74c3c;
+        }
+        
+        .detection-result.normal {
+            background: #e8f8f5;
+            border-left-color: #27ae60;
+        }
+        
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 1.05em;
+        }
+        
+        .result-label {
+            font-weight: 600;
+            color: #34495e;
+        }
+        
+        .result-value {
+            color: #2c3e50;
+        }
+        
+        .classification-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .badge-attack {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .badge-normal {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .severity-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .severity-low {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .severity-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .severity-high {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 1.05em;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: 600;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+        }
+        
+        .alert-item {
+            padding: 18px;
+            margin-bottom: 12px;
+            background: #fff3cd;
+            border-left: 5px solid #f39c12;
+            border-radius: 8px;
+        }
+        
+        .alert-item.high {
+            background: #f8d7da;
+            border-left-color: #e74c3c;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 30px;
+            font-size: 1.1em;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ Intelligent DDoS Detection System</h1>
+            <p class="subtitle">Real-time Multi-Level Attack Detection & Classification using Machine Learning</p>
+        </header>
+        
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Traffic</h3>
+                <div class="stat-value" id="total-traffic">--</div>
+            </div>
+            
+            <div class="stat-card danger">
+                <h3>Attacks Detected</h3>
+                <div class="stat-value" id="attacks-detected">--</div>
+            </div>
+            
+            <div class="stat-card warning">
+                <h3>Attack Rate</h3>
+                <div class="stat-value" id="attack-rate">--%</div>
+            </div>
+            
+            <div class="stat-card success">
+                <h3>Active Alerts</h3>
+                <div class="stat-value" id="active-alerts">--</div>
+            </div>
+            
+            <div class="stat-card">
+                <h3>Binary Accuracy</h3>
+                <div class="stat-value" id="binary-accuracy">--%</div>
+            </div>
+            
+            <div class="stat-card">
+                <h3>Classification Accuracy</h3>
+                <div class="stat-value" id="multiclass-accuracy">--%</div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Detection Result -->
+            <div class="card">
+                <h2>Latest Detection Result</h2>
+                <div id="detection-content" class="loading">
+                    Click "Analyze Traffic" to start detection...
+                </div>
+                <button class="btn" onclick="analyzeTraffic()">🔍 Analyze Traffic</button>
+            </div>
+            
+            <!-- Alerts Panel -->
+            <div class="card">
+                <h2>Recent Alerts</h2>
+                <div id="alerts-content">
+                    <p class="loading">No alerts yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Store alerts
+        let alerts = [];
+        
+        // Load statistics on page load
+        loadStatistics();
+        
+        function loadStatistics() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('total-traffic').textContent = data.total_traffic;
+                    document.getElementById('attacks-detected').textContent = data.attacks_detected;
+                    document.getElementById('attack-rate').textContent = data.attack_rate + '%';
+                    document.getElementById('active-alerts').textContent = data.active_alerts;
+                    document.getElementById('binary-accuracy').textContent = data.binary_accuracy + '%';
+                    document.getElementById('multiclass-accuracy').textContent = data.multiclass_accuracy + '%';
+                })
+                .catch(error => console.error('Error loading stats:', error));
+        }
+        
+        function analyzeTraffic() {
+            const detectionContent = document.getElementById('detection-content');
+            detectionContent.innerHTML = '<p class="loading">Analyzing network traffic...</p>';
+            
+            fetch('/api/predict')
+                .then(response => response.json())
+                .then(data => {
+                    displayResult(data);
+                    if (data.is_attack && data.severity_level !== 'Low') {
+                        addAlert(data);
+                    }
+                    loadStatistics(); // Refresh stats
+                })
+                .catch(error => {
+                    detectionContent.innerHTML = '<p class="loading">Error: ' + error.message + '</p>';
+                });
+        }
+        
+        function displayResult(data) {
+            const isAttack = data.is_attack;
+            const classType = isAttack ? 'attack' : 'normal';
+            const badgeClass = isAttack ? 'badge-attack' : 'badge-normal';
+            
+            let severityHtml = '';
+            if (isAttack) {
+                const severityClass = 'severity-' + data.severity_level.toLowerCase();
+                severityHtml = `
+                    <div class="result-row">
+                        <span class="result-label">Severity Score:</span>
+                        <span class="result-value">${data.severity_score}/10</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Severity Level:</span>
+                        <span class="severity-badge ${severityClass}">${data.severity_level}</span>
+                    </div>
+                `;
+            }
+            
+            const html = `
+                <div class="detection-result ${classType}">
+                    <div class="result-row">
+                        <span class="result-label">Timestamp:</span>
+                        <span class="result-value">${data.timestamp}</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Source IP:</span>
+                        <span class="result-value">${data.source_ip}</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Destination IP:</span>
+                        <span class="result-value">${data.dest_ip}</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Protocol:</span>
+                        <span class="result-value">${data.protocol}</span>
+                    </div>
+                    <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
+                    <div class="result-row">
+                        <span class="result-label">Binary Classification:</span>
+                        <span class="classification-badge ${badgeClass}">${data.classification}</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Attack Type:</span>
+                        <span class="result-value" style="font-weight: bold; color: ${isAttack ? '#e74c3c' : '#27ae60'};">
+                            ${data.attack_type}
+                        </span>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Confidence:</span>
+                        <span class="result-value">${data.confidence}%</span>
+                    </div>
+                    ${severityHtml}
+                </div>
+            `;
+            
+            document.getElementById('detection-content').innerHTML = html;
+        }
+        
+        function addAlert(data) {
+            const alertClass = data.severity_level === 'High' ? 'high' : '';
+            const alertHtml = `
+                <div class="alert-item ${alertClass}">
+                    <strong>${data.timestamp}</strong><br>
+                    ${data.severity_level} severity ${data.attack_type} attack detected<br>
+                    Source: ${data.source_ip} → Destination: ${data.dest_ip}
+                </div>
+            `;
+            
+            alerts.unshift(alertHtml);
+            if (alerts.length > 5) alerts.pop();
+            
+            document.getElementById('alerts-content').innerHTML = alerts.join('');
+        }
+        
+        // Auto-refresh stats every 30 seconds
+        setInterval(loadStatistics, 30000);
+    </script>
+</body>
+</html>
